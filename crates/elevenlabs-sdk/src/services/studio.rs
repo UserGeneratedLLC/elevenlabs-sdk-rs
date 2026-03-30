@@ -1171,13 +1171,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::{
-        ElevenLabsClient,
-        config::ClientConfig,
-        types::{
-            AddPronunciationRulesRequest,
-        },
-    };
+    use crate::{ElevenLabsClient, config::ClientConfig, types::AddPronunciationRulesRequest};
 
     /// Helper to create a test client pointed at a mock server.
     fn test_client(uri: &str) -> ElevenLabsClient {
