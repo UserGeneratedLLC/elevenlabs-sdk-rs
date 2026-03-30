@@ -219,15 +219,15 @@ fn build_stt_multipart(
     }
 
     // additional_formats (JSON array)
-    if let Some(ref fmts) = request.additional_formats &&
-        let Ok(json) = serde_json::to_string(fmts)
+    if let Some(ref fmts) = request.additional_formats
+        && let Ok(json) = serde_json::to_string(fmts)
     {
         append_text_field(&mut buf, boundary, "additional_formats", &json);
     }
 
     // file_format
-    if let Some(ref ff) = request.file_format &&
-        let Some(ff_str) = enum_to_str(ff)
+    if let Some(ref ff) = request.file_format
+        && let Some(ff_str) = enum_to_str(ff)
     {
         append_text_field(&mut buf, boundary, "file_format", &ff_str);
     }
@@ -274,15 +274,15 @@ fn build_stt_multipart(
     }
 
     // entity_detection (JSON array)
-    if let Some(ref entities) = request.entity_detection &&
-        let Ok(json) = serde_json::to_string(entities)
+    if let Some(ref entities) = request.entity_detection
+        && let Ok(json) = serde_json::to_string(entities)
     {
         append_text_field(&mut buf, boundary, "entity_detection", &json);
     }
 
     // keyterms (JSON array)
-    if let Some(ref terms) = request.keyterms &&
-        let Ok(json) = serde_json::to_string(terms)
+    if let Some(ref terms) = request.keyterms
+        && let Ok(json) = serde_json::to_string(terms)
     {
         append_text_field(&mut buf, boundary, "keyterms", &json);
     }

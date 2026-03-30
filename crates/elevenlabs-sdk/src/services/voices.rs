@@ -511,8 +511,8 @@ fn build_add_voice_multipart(
         append_text_field(&mut buf, boundary, "description", desc);
     }
 
-    if let Some(ref labels) = request.labels &&
-        let Ok(json) = serde_json::to_string(labels)
+    if let Some(ref labels) = request.labels
+        && let Ok(json) = serde_json::to_string(labels)
     {
         append_text_field(&mut buf, boundary, "labels", &json);
     }
@@ -539,8 +539,8 @@ fn build_edit_voice_multipart(
         append_text_field(&mut buf, boundary, "description", desc);
     }
 
-    if let Some(ref labels) = request.labels &&
-        let Ok(json) = serde_json::to_string(labels)
+    if let Some(ref labels) = request.labels
+        && let Ok(json) = serde_json::to_string(labels)
     {
         append_text_field(&mut buf, boundary, "labels", &json);
     }

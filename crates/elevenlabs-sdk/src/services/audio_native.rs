@@ -241,8 +241,8 @@ fn build_create_project_multipart(
     );
 
     // apply_text_normalization (optional)
-    if let Some(ref norm) = request.apply_text_normalization &&
-        let Ok(json) = serde_json::to_string(norm)
+    if let Some(ref norm) = request.apply_text_normalization
+        && let Ok(json) = serde_json::to_string(norm)
     {
         let value = json.trim_matches('"');
         append_text_field(&mut buf, boundary, "apply_text_normalization", value);

@@ -195,8 +195,8 @@ fn build_s2s_multipart(
     append_text_field(&mut buf, boundary, "model_id", &request.model_id);
 
     // voice_settings (JSON-encoded string, optional)
-    if let Some(ref vs) = request.voice_settings &&
-        let Ok(json) = serde_json::to_string(vs)
+    if let Some(ref vs) = request.voice_settings
+        && let Ok(json) = serde_json::to_string(vs)
     {
         append_text_field(&mut buf, boundary, "voice_settings", &json);
     }
@@ -215,8 +215,8 @@ fn build_s2s_multipart(
     );
 
     // file_format (optional)
-    if let Some(ref ff) = request.file_format &&
-        let Ok(json) = serde_json::to_string(ff)
+    if let Some(ref ff) = request.file_format
+        && let Ok(json) = serde_json::to_string(ff)
     {
         // Serialized as JSON string with quotes; strip them for the form field.
         let value = json.trim_matches('"');

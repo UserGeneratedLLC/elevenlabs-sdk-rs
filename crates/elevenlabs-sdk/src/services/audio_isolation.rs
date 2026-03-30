@@ -177,8 +177,8 @@ fn build_audio_isolation_multipart(
     append_file_part(&mut buf, boundary, "audio", filename, content_type, audio_data);
 
     // file_format (optional)
-    if let Some(ref ff) = request.file_format &&
-        let Ok(json) = serde_json::to_string(ff)
+    if let Some(ref ff) = request.file_format
+        && let Ok(json) = serde_json::to_string(ff)
     {
         let value = json.trim_matches('"');
         append_text_field(&mut buf, boundary, "file_format", value);
@@ -207,8 +207,8 @@ fn build_audio_isolation_stream_multipart(
     append_file_part(&mut buf, boundary, "audio", filename, content_type, audio_data);
 
     // file_format (optional)
-    if let Some(ref ff) = request.file_format &&
-        let Ok(json) = serde_json::to_string(ff)
+    if let Some(ref ff) = request.file_format
+        && let Ok(json) = serde_json::to_string(ff)
     {
         let value = json.trim_matches('"');
         append_text_field(&mut buf, boundary, "file_format", value);

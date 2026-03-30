@@ -21,10 +21,10 @@ const MAX_RETRY_DELAY: Duration = Duration::from_secs(30);
 pub(crate) const fn should_retry(status: StatusCode) -> bool {
     matches!(
         status,
-        StatusCode::TOO_MANY_REQUESTS |
-            StatusCode::INTERNAL_SERVER_ERROR |
-            StatusCode::BAD_GATEWAY |
-            StatusCode::SERVICE_UNAVAILABLE
+        StatusCode::TOO_MANY_REQUESTS
+            | StatusCode::INTERNAL_SERVER_ERROR
+            | StatusCode::BAD_GATEWAY
+            | StatusCode::SERVICE_UNAVAILABLE
     )
 }
 
