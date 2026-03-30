@@ -1,12 +1,12 @@
 [package]
 name = "elevenlabs-sdk"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/UserGeneratedLLC/elevenlabs-sdk-rs"
 description = "Comprehensive async Rust SDK for ElevenLabs API with TTS, STT, voice management, and WebSocket streaming"
 readme = "../../README.md"
-homepage = "https://github.com/longcipher/elevenlabs-sdk-rs"
+homepage = "https://github.com/UserGeneratedLLC/elevenlabs-sdk-rs"
 documentation = "https://docs.rs/elevenlabs-sdk"
 
 keywords = [
@@ -24,26 +24,23 @@ categories = [
 ]
 
 [dependencies]
-base64.workspace = true
-bytes.workspace = true
-futures-core.workspace = true
-hpx = { workspace = true, features = [
+base64 = "0.22.1"
+bytes = "1.11.1"
+futures-core = "0.3.32"
+hpx = { version = "1.4.0", default-features = false, features = [
     "rustls-tls",
     "http1",
     "http2",
     "json",
     "stream",
 ] }
-hpx-transport.workspace = true
-serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
-thiserror.workspace = true
-tokio = { workspace = true, features = ["rt", "macros", "time"] }
-tracing.workspace = true
-url.workspace = true
+hpx-transport = "1.4.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+thiserror = "2.0.18"
+tokio = { version = "1.49.0", features = ["rt", "macros", "time"] }
+tracing = "0.1.44"
+url = "2.5.8"
 
 [dev-dependencies]
-wiremock = { workspace = true }
-
-[lints]
-workspace = true
+wiremock = "0.6.5"
