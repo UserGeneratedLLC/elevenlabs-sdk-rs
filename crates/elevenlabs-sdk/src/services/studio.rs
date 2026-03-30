@@ -330,7 +330,7 @@ impl<'a> StudioService<'a> {
         project_id: &str,
         snapshot_id: &str,
         convert_to_mpeg: Option<bool>,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         let path = format!("/v1/studio/projects/{project_id}/snapshots/{snapshot_id}/stream");
         let body = SnapshotStreamRequest { convert_to_mpeg };
         self.client.post_stream(&path, &body).await
@@ -353,7 +353,7 @@ impl<'a> StudioService<'a> {
         &self,
         project_id: &str,
         snapshot_id: &str,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         let path = format!("/v1/studio/projects/{project_id}/snapshots/{snapshot_id}/archive");
         self.client.post_stream(&path, &serde_json::Value::Null).await
     }
@@ -592,7 +592,7 @@ impl<'a> StudioService<'a> {
         chapter_id: &str,
         snapshot_id: &str,
         convert_to_mpeg: Option<bool>,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         let path = format!(
             "/v1/studio/projects/{project_id}/chapters/{chapter_id}/snapshots/{snapshot_id}/stream"
         );

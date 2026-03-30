@@ -141,7 +141,7 @@ impl<'a> MusicService<'a> {
     pub async fn compose_stream(
         &self,
         request: &MusicComposeRequest,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         self.client.post_stream("/v1/music/stream", request).await
     }
 

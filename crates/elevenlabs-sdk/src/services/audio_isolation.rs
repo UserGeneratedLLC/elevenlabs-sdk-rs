@@ -107,7 +107,7 @@ impl<'a> AudioIsolationService<'a> {
         audio_data: &[u8],
         filename: &str,
         content_type: &str,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         let boundary = format!("----ElevenLabsSDK{}", uuid_v4_simple());
         let body = build_audio_isolation_stream_multipart(
             &boundary,

@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use hpx::StatusCode;
+use reqwest::StatusCode;
 
 /// Maximum delay cap for retry backoff (30 seconds).
 const MAX_RETRY_DELAY: Duration = Duration::from_secs(30);
@@ -33,10 +33,10 @@ pub(crate) const fn should_retry(status: StatusCode) -> bool {
 ///
 /// Returns `None` if the header is absent, not valid UTF-8, or not a valid
 /// integer.
-pub(crate) fn parse_retry_after(response: &hpx::Response) -> Option<u64> {
+pub(crate) fn parse_retry_after(response: &reqwest::Response) -> Option<u64> {
     response
         .headers()
-        .get(hpx::header::RETRY_AFTER)
+        .get(reqwest::header::RETRY_AFTER)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse::<u64>().ok())
 }

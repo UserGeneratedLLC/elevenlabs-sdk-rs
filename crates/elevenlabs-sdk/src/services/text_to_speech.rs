@@ -162,7 +162,7 @@ impl<'a> TextToSpeechService<'a> {
         request: &TextToSpeechRequest,
         output_format: Option<OutputFormat>,
         optimize_streaming_latency: Option<u8>,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         let path = Self::build_path(voice_id, "/stream", output_format, optimize_streaming_latency);
         self.client.post_stream(&path, request).await
     }
@@ -191,7 +191,7 @@ impl<'a> TextToSpeechService<'a> {
         request: &TextToSpeechRequest,
         output_format: Option<OutputFormat>,
         optimize_streaming_latency: Option<u8>,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         let path = Self::build_path(
             voice_id,
             "/stream/with-timestamps",

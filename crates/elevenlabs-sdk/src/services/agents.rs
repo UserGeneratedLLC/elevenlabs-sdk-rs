@@ -315,7 +315,7 @@ impl<'a> AgentsService<'a> {
         &self,
         agent_id: &str,
         request: &serde_json::Value,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>> + use<'_>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>> + use<'_>> {
         let path = format!("/v1/convai/agents/{agent_id}/simulate-conversation/stream");
         self.client.post_stream(&path, request).await
     }

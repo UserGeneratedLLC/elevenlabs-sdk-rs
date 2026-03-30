@@ -1,12 +1,12 @@
 //! HTTP client core for the ElevenLabs API.
 //!
-//! Provides [`ElevenLabsClient`], which wraps an [`hpx::Client`] and handles
+//! Provides [`ElevenLabsClient`], which wraps an [`reqwest::Client`] and handles
 //! URL construction, API key header injection, JSON (de)serialization,
 //! error response parsing, and tracing instrumentation.
 
 use bytes::Bytes;
 use futures_core::Stream;
-use hpx::{
+use reqwest::{
     Method, StatusCode,
     header::{HeaderMap, HeaderValue},
 };
@@ -21,7 +21,7 @@ use crate::{
 
 /// The main ElevenLabs API client.
 ///
-/// Wraps an [`hpx::Client`] with ElevenLabs-specific configuration, including
+/// Wraps an [`reqwest::Client`] with ElevenLabs-specific configuration, including
 /// automatic API key injection, base URL handling, and error mapping.
 ///
 /// Created via [`ElevenLabsClient::new`] with a [`ClientConfig`].
@@ -39,7 +39,7 @@ use crate::{
 /// ```
 pub struct ElevenLabsClient {
     config: ClientConfig,
-    http: hpx::Client,
+    http: reqwest::Client,
     base_url: url::Url,
 }
 
@@ -92,7 +92,7 @@ impl ElevenLabsClient {
         api_key_value.set_sensitive(true);
         default_headers.insert(API_KEY_HEADER, api_key_value);
 
-        let http = hpx::Client::builder()
+        let http = reqwest::Client::builder()
             .default_headers(default_headers)
             .timeout(config.timeout)
             .build()
@@ -232,7 +232,7 @@ impl ElevenLabsClient {
         crate::services::PvcVoicesService::new(self)
     }
 
-    /// Sends an HTTP request and returns the raw [`hpx::Response`].
+    /// Sends an HTTP request and returns the raw [`reqwest::Response`].
     ///
     /// Constructs the full URL by joining `path` onto the base URL,
     /// optionally attaches a pre-serialized JSON body, and maps
@@ -246,7 +246,7 @@ impl ElevenLabsClient {
         method: Method,
         path: &str,
         body: Option<serde_json::Value>,
-    ) -> Result<hpx::Response> {
+    ) -> Result<reqwest::Response> {
         let url = self.base_url.join(path)?;
 
         let mut last_error: Option<ElevenLabsError> = None;
@@ -305,7 +305,7 @@ impl ElevenLabsClient {
 
     /// Checks an HTTP response for errors and maps them to [`ElevenLabsError`]
     /// variants.
-    async fn handle_error_response(response: hpx::Response) -> Result<hpx::Response> {
+    async fn handle_error_response(response: reqwest::Response) -> Result<reqwest::Response> {
         let status = response.status();
 
         if status.is_success() {
@@ -324,7 +324,7 @@ impl ElevenLabsClient {
         if status == StatusCode::TOO_MANY_REQUESTS {
             let retry_after = response
                 .headers()
-                .get(hpx::header::RETRY_AFTER)
+                .get(reqwest::header::RETRY_AFTER)
                 .and_then(|v| v.to_str().ok())
                 .and_then(|v| v.parse::<u64>().ok());
             return Err(ElevenLabsError::RateLimited { retry_after });
@@ -400,14 +400,14 @@ impl ElevenLabsClient {
 
     /// Sends a POST request and returns a streaming response of byte chunks.
     ///
-    /// Stream items contain [`hpx::Error`] rather than [`ElevenLabsError`] to
+    /// Stream items contain [`reqwest::Error`] rather than [`ElevenLabsError`] to
     /// avoid requiring additional stream-mapping dependencies. Callers should
     /// convert errors at the service layer.
     pub(crate) async fn post_stream<B: Serialize + Sync>(
         &self,
         path: &str,
         body: &B,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>> + use<B>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>> + use<B>> {
         let json_value = serde_json::to_value(body)?;
         let response = self.request(Method::POST, path, Some(json_value)).await?;
         let response = Self::handle_error_response(response).await?;
@@ -446,7 +446,7 @@ impl ElevenLabsClient {
     /// Sends a POST request with a raw body and custom content-type, then
     /// deserializes the JSON response.
     ///
-    /// Used for multipart/form-data uploads where `hpx` does not provide a
+    /// Used for multipart/form-data uploads where `reqwest` does not provide a
     /// built-in multipart builder.
     pub(crate) async fn post_multipart<T: DeserializeOwned>(
         &self,
@@ -458,7 +458,7 @@ impl ElevenLabsClient {
         let response = self
             .http
             .post(url.as_str())
-            .header(hpx::header::CONTENT_TYPE, content_type)
+            .header(reqwest::header::CONTENT_TYPE, content_type)
             .body(body)
             .send()
             .await
@@ -483,7 +483,7 @@ impl ElevenLabsClient {
         let response = self
             .http
             .post(url.as_str())
-            .header(hpx::header::CONTENT_TYPE, content_type)
+            .header(reqwest::header::CONTENT_TYPE, content_type)
             .body(body)
             .send()
             .await
@@ -503,12 +503,12 @@ impl ElevenLabsClient {
         path: &str,
         body: Vec<u8>,
         content_type: &str,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>> + use<'_>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>> + use<'_>> {
         let url = self.base_url.join(path)?;
         let response = self
             .http
             .post(url.as_str())
-            .header(hpx::header::CONTENT_TYPE, content_type)
+            .header(reqwest::header::CONTENT_TYPE, content_type)
             .body(body)
             .send()
             .await

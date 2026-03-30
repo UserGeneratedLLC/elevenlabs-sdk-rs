@@ -94,7 +94,7 @@ impl<'a> TextToDialogueService<'a> {
     pub async fn convert_stream(
         &self,
         request: &TextToDialogueRequest,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         self.client.post_stream("/v1/text-to-dialogue/stream", request).await
     }
 
@@ -141,7 +141,7 @@ impl<'a> TextToDialogueService<'a> {
     pub async fn convert_stream_with_timestamps(
         &self,
         request: &TextToDialogueRequest,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         self.client.post_stream("/v1/text-to-dialogue/stream/with-timestamps", request).await
     }
 }

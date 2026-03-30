@@ -27,9 +27,8 @@ categories = [
 base64 = "0.22.1"
 bytes = "1.11.1"
 futures-core = "0.3.32"
-hpx = { version = "1.4.0", default-features = false, features = [
+reqwest = { version = "0.12", default-features = false, features = [
     "rustls-tls",
-    "http1",
     "http2",
     "json",
     "stream",

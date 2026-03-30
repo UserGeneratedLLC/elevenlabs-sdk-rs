@@ -52,7 +52,7 @@ elevenlabs-sdk-rs/
 
 | Use | Instead of |
 |-----|------------|
-| `hpx` (with `rustls`) | `reqwest` |
+| `reqwest` (with `rustls`) | `hpx` |
 | `thiserror` | `anyhow` |
 | `tracing` | `log` |
 | `scc` | `dashmap`, `RwLock<HashMap>` |

@@ -126,7 +126,7 @@ impl<'a> SpeechToSpeechService<'a> {
         filename: &str,
         content_type: &str,
         output_format: Option<OutputFormat>,
-    ) -> Result<impl Stream<Item = std::result::Result<Bytes, hpx::Error>>> {
+    ) -> Result<impl Stream<Item = std::result::Result<Bytes, reqwest::Error>>> {
         let path = Self::build_path(voice_id, "/stream", output_format);
         let boundary = format!("----ElevenLabsSDK{}", uuid_v4_simple());
         let body = build_s2s_multipart(&boundary, request, audio_data, filename, content_type);

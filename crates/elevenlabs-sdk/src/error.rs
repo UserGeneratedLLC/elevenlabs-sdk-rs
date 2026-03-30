@@ -42,7 +42,7 @@ pub enum ElevenLabsError {
 
     /// An error occurred at the HTTP transport layer.
     #[error("Transport error: {0}")]
-    Transport(#[from] hpx::Error),
+    Transport(#[from] reqwest::Error),
 
     /// Failed to deserialize a JSON response body.
     #[error("Deserialization error: {0}")]
