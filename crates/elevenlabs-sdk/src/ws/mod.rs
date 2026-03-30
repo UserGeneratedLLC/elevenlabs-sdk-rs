@@ -7,13 +7,11 @@
 //! - **Conversational AI** ([`conversation`]) — bidirectional audio/text communication with an
 //!   ElevenLabs conversational agent.
 //!
-//! Both clients are built on top of [`hpx_transport::websocket`] for managed
-//! WebSocket connections with automatic reconnection and protocol handling.
+//! Both clients are built on top of [`tokio_tungstenite`] for WebSocket
+//! connections with automatic TLS and ping/pong handling.
 
 pub mod conversation;
-pub(crate) mod conversation_handler;
 pub mod tts;
-pub(crate) mod tts_handler;
 
 use url::Url;
 

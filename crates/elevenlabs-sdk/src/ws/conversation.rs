@@ -15,16 +15,15 @@
 //!    connection alive.
 
 use base64::Engine;
-use hpx_transport::websocket::{
-    Connection, ConnectionHandle, ConnectionStream, Event, WsConfig, WsMessage,
-};
+use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use tokio::net::TcpStream;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::Message};
 use tracing::debug;
 
 use crate::{
     client::ElevenLabsClient,
     error::{ElevenLabsError, Result},
-    ws::conversation_handler::ConversationProtocolHandler,
 };
 
 /// Events received from the Conversational AI WebSocket.
@@ -126,6 +125,8 @@ enum ClientMessage {
     },
 }
 
+type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
+
 /// Conversational AI WebSocket client for real-time agent interaction.
 ///
 /// Supports sending audio frames and receiving typed conversation events
@@ -157,8 +158,7 @@ enum ClientMessage {
 /// # }
 /// ```
 pub struct ConversationWebSocket {
-    handle: ConnectionHandle,
-    stream: ConnectionStream,
+    ws: WsStream,
 }
 
 impl std::fmt::Debug for ConversationWebSocket {
@@ -180,16 +180,12 @@ impl ConversationWebSocket {
     pub async fn connect(signed_url: &str) -> Result<Self> {
         debug!(url = %signed_url, "connecting to Conversational AI WebSocket");
 
-        let handler = ConversationProtocolHandler;
-        let transport_config =
-            WsConfig::new(signed_url).reconnect_max_attempts(Some(0)).use_websocket_ping(true);
-
-        let (handle, stream) = Connection::connect(transport_config, handler)
+        let (ws, _) = tokio_tungstenite::connect_async(signed_url)
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("connection failed: {e}")))?;
 
         debug!("Conversational AI WebSocket connected");
-        Ok(Self { handle, stream })
+        Ok(Self { ws })
     }
 
     /// Connect by agent ID.
@@ -217,8 +213,8 @@ impl ConversationWebSocket {
         let encoded = base64::engine::general_purpose::STANDARD.encode(audio);
         let msg = ClientMessage::UserAudioChunk { user_audio_chunk: encoded };
         let json = serde_json::to_string(&msg)?;
-        self.handle
-            .send(WsMessage::text(json))
+        self.ws
+            .send(Message::Text(json.into()))
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("send_audio failed: {e}")))?;
         Ok(())
@@ -234,18 +230,16 @@ impl ConversationWebSocket {
     /// [`ElevenLabsError::Deserialization`] if the JSON payload is malformed.
     pub async fn recv(&mut self) -> Result<Option<ConversationEvent>> {
         loop {
-            match self.stream.next().await {
-                Some(Event::Message(incoming)) => {
-                    if let Some(text) = incoming.text {
-                        let event: ConversationEvent = serde_json::from_str(&text)?;
-                        return Ok(Some(event));
-                    }
-                    // Binary message without decodable text — keep receiving.
+            match self.ws.next().await {
+                Some(Ok(Message::Text(text))) => {
+                    let event: ConversationEvent = serde_json::from_str(&text)?;
+                    return Ok(Some(event));
                 }
-                Some(Event::Connected { .. }) => {
-                    // Connection lifecycle event — keep receiving.
+                Some(Ok(Message::Close(_))) | None => return Ok(None),
+                Some(Err(e)) => {
+                    return Err(ElevenLabsError::WebSocket(format!("receive error: {e}")));
                 }
-                Some(Event::Disconnected { .. }) | None => return Ok(None),
+                Some(Ok(_)) => continue,
             }
         }
     }
@@ -260,8 +254,8 @@ impl ConversationWebSocket {
     pub async fn send_pong(&mut self, event_id: i64) -> Result<()> {
         let msg = ClientMessage::Pong { event_id };
         let json = serde_json::to_string(&msg)?;
-        self.handle
-            .send(WsMessage::text(json))
+        self.ws
+            .send(Message::Text(json.into()))
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("send_pong failed: {e}")))?;
         Ok(())
@@ -272,9 +266,9 @@ impl ConversationWebSocket {
     /// # Errors
     ///
     /// Returns [`ElevenLabsError::WebSocket`] if the close handshake fails.
-    pub async fn close(self) -> Result<()> {
-        self.handle
-            .close()
+    pub async fn close(mut self) -> Result<()> {
+        self.ws
+            .send(Message::Close(None))
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("close failed: {e}")))?;
         debug!("Conversational AI WebSocket closed");

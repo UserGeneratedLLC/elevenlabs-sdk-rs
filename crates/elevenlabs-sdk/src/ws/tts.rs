@@ -13,17 +13,17 @@
 //! 5. Receive [`TtsWsResponse`] messages containing base64 audio.
 //! 6. Close with [`TtsWebSocket::close`] (sends an EOS message).
 
-use hpx_transport::websocket::{
-    Connection, ConnectionHandle, ConnectionStream, Event, WsConfig, WsMessage,
-};
+use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use tokio::net::TcpStream;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::Message};
 use tracing::debug;
 
 use crate::{
     config::ClientConfig,
     error::{ElevenLabsError, Result},
     types::{OutputFormat, VoiceSettings},
-    ws::{build_ws_url, tts_handler::TtsProtocolHandler},
+    ws::build_ws_url,
 };
 
 /// Configuration for a TTS WebSocket connection.
@@ -120,9 +120,11 @@ struct EosMessage<'a> {
     text: &'a str,
 }
 
+type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
+
 /// TTS WebSocket client for real-time text-to-speech streaming.
 ///
-/// Wraps an `hpx_transport` managed connection, providing typed methods for
+/// Wraps a [`tokio_tungstenite`] connection, providing typed methods for
 /// the ElevenLabs input-streaming TTS protocol.
 ///
 /// # Example
@@ -155,8 +157,7 @@ struct EosMessage<'a> {
 /// # }
 /// ```
 pub struct TtsWebSocket {
-    handle: ConnectionHandle,
-    stream: ConnectionStream,
+    ws: WsStream,
 }
 
 impl std::fmt::Debug for TtsWebSocket {
@@ -184,21 +185,15 @@ impl TtsWebSocket {
             params.push(("output_format", fmt.to_string()));
         }
 
-        // Build param refs for the URL builder.
         let param_refs: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
 
         let url = build_ws_url(&client_config.base_url, &path, &param_refs)?;
         debug!(url = %url, "connecting to TTS WebSocket");
 
-        let handler = TtsProtocolHandler;
-        let transport_config =
-            WsConfig::new(url.to_string()).reconnect_max_attempts(Some(0)).use_websocket_ping(true);
-
-        let (handle, stream) = Connection::connect(transport_config, handler)
+        let (mut ws, _) = tokio_tungstenite::connect_async(url.as_str())
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("connection failed: {e}")))?;
 
-        // Send BOS message.
         let bos = BosMessage {
             text: " ",
             voice_settings: ws_config.voice_settings.as_ref(),
@@ -206,13 +201,12 @@ impl TtsWebSocket {
             xi_api_key: Some(client_config.api_key.as_str()),
         };
         let bos_json = serde_json::to_string(&bos)?;
-        handle
-            .send(WsMessage::text(bos_json))
+        ws.send(Message::Text(bos_json.into()))
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("BOS send failed: {e}")))?;
 
         debug!("TTS WebSocket connected and BOS sent");
-        Ok(Self { handle, stream })
+        Ok(Self { ws })
     }
 
     /// Send a text chunk for conversion.
@@ -226,8 +220,8 @@ impl TtsWebSocket {
     pub async fn send_text(&mut self, text: &str) -> Result<()> {
         let msg = TextChunkMessage { text, try_trigger_generation: true };
         let json = serde_json::to_string(&msg)?;
-        self.handle
-            .send(WsMessage::text(json))
+        self.ws
+            .send(Message::Text(json.into()))
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("send_text failed: {e}")))?;
         Ok(())
@@ -243,8 +237,8 @@ impl TtsWebSocket {
     pub async fn flush(&mut self) -> Result<()> {
         let msg = FlushMessage { text: " ", flush: true };
         let json = serde_json::to_string(&msg)?;
-        self.handle
-            .send(WsMessage::text(json))
+        self.ws
+            .send(Message::Text(json.into()))
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("flush failed: {e}")))?;
         Ok(())
@@ -260,18 +254,16 @@ impl TtsWebSocket {
     /// [`ElevenLabsError::Deserialization`] if the JSON payload is malformed.
     pub async fn recv(&mut self) -> Result<Option<TtsWsResponse>> {
         loop {
-            match self.stream.next().await {
-                Some(Event::Message(incoming)) => {
-                    if let Some(text) = incoming.text {
-                        let resp: TtsWsResponse = serde_json::from_str(&text)?;
-                        return Ok(Some(resp));
-                    }
-                    // Binary message without decodable text — keep receiving.
+            match self.ws.next().await {
+                Some(Ok(Message::Text(text))) => {
+                    let resp: TtsWsResponse = serde_json::from_str(&text)?;
+                    return Ok(Some(resp));
                 }
-                Some(Event::Connected { .. }) => {
-                    // Connection lifecycle event — keep receiving.
+                Some(Ok(Message::Close(_))) | None => return Ok(None),
+                Some(Err(e)) => {
+                    return Err(ElevenLabsError::WebSocket(format!("receive error: {e}")));
                 }
-                Some(Event::Disconnected { .. }) | None => return Ok(None),
+                Some(Ok(_)) => continue,
             }
         }
     }
@@ -281,18 +273,16 @@ impl TtsWebSocket {
     /// # Errors
     ///
     /// Returns [`ElevenLabsError::WebSocket`] if the close handshake fails.
-    pub async fn close(self) -> Result<()> {
-        // Send EOS message.
+    pub async fn close(mut self) -> Result<()> {
         let eos = EosMessage { text: "" };
         let json = serde_json::to_string(&eos)?;
-        self.handle
-            .send(WsMessage::text(json))
+        self.ws
+            .send(Message::Text(json.into()))
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("EOS send failed: {e}")))?;
 
-        // Close the managed connection.
-        self.handle
-            .close()
+        self.ws
+            .send(Message::Close(None))
             .await
             .map_err(|e| ElevenLabsError::WebSocket(format!("close failed: {e}")))?;
 
