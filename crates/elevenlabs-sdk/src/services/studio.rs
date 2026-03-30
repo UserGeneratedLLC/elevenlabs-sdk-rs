@@ -1175,8 +1175,7 @@ mod tests {
         ElevenLabsClient,
         config::ClientConfig,
         types::{
-            AddPronunciationRulesRequest, PronunciationDictionaryLocatorRequest,
-            RemovePronunciationRulesRequest, UpdatePronunciationDictionaryRequest,
+            AddPronunciationRulesRequest,
         },
     };
 
